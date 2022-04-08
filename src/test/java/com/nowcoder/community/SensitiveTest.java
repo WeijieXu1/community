@@ -2,16 +2,20 @@ package com.nowcoder.community;
 
 import com.fasterxml.jackson.databind.annotation.JsonAppend;
 import com.nowcoder.community.util.SensitiveFilter;
-import org.junit.jupiter.api.Test;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.util.HtmlUtils;
 
 /**
  * @author xuweijie
  * @create 2022-03-21 20:29
  */
+@RunWith(SpringRunner.class)
 @SpringBootTest
 @ContextConfiguration(classes = CommunityApplication.class)
 public class SensitiveTest {

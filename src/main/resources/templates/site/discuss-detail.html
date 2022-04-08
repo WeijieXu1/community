@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -74,14 +75,20 @@
                 width="40" height="40" />
                 <span th:utext="${post.title}">备战春招，面试刷题跟他复习，一个月全搞定！</span>
                 <div class="float-right">
-                    <button type="button" class="btn btn-danger btn-sm">置顶</button>
-                    <button type="button" class="btn btn-danger btn-sm">加精</button>
-                    <button type="button" class="btn btn-danger btn-sm">删除</button>
+                    <input type="hidden" id="postId" th:value="${post.id}">
+                    <button type="button" class="btn btn-danger btn-sm" id="topBtn"
+                     sec:authorize="hasAnyAuthority('moderator')">
+                        <i th:text="${post.type==1? '已置顶':'置顶'}">置顶</i></button>
+                    <button type="button" class="btn btn-danger btn-sm" id="wonderfulBtn"
+                     sec:authorize="hasAnyAuthority('moderator')">
+                        <i th:text="${post.status==1?'已加精':'加精'}">加精</i></button>
+                    <button type="button" class="btn btn-danger btn-sm" id="deleteBtn"
+                    th:disabled="${post.status==2}" sec:authorize="hasAnyAuthority('admin')">删除</button>
                 </div>
             </h6>
             <!-- 作者 -->
             <div class="media pb-3 border-bottom">
-                <a href="profile.html">
+                <a th:href="@{|/user/profile/${user.id}|}">
                     <img th:src="${user.headerUrl}" class="align-self-start mr-4 rounded-circle user-header" alt="用户头像">
                 </a>
                 <div class="media-body">
@@ -90,7 +97,7 @@
                         发布于 <b th:text="${#dates.format(post.createTime,'yyyy-MM-dd HH:mm:ss')}">2019-04-15 15:32:18</b>
                         <ul class="d-inline float-right">
                             <li class="d-inline ml-2">
-                                <a href="javascript:;" th:onclick="|like(this,1,${post.id});|" class="text-primary">
+                                <a href="javascript:;" th:onclick="|like(this,1,${post.id},${post.userId},${post.id});|" class="text-primary">
                                     <b th:text="${likeStatus==1?'已赞':'赞'}">赞</b> <i th:text="${likeCount}">11</i>
                                 </a>
                             </li>
@@ -126,7 +133,7 @@
             <ul class="list-unstyled mt-4">
 
                 <li class="media pb-3 pt-3 mb-3 border-bottom" th:each="cvo:${comments}">
-                    <a href="profile.html">
+                    <a th:href="@{|/user/profile/${cvo.user.id}|}">
                         <img th:src="${cvo.user.headerUrl}" class="align-self-start mr-4 rounded-circle user-header"
                              alt="用户头像">
                     </a>
@@ -144,7 +151,7 @@
                             <span>发布于 <b th:text="${#dates.format(cvo.comment.createTime,'yyyy-MM-dd HH:mm:ss')}">2019-04-15 15:32:18</b></span>
                             <ul class="d-inline float-right">
                                 <li class="d-inline ml-2">
-                                    <a href="javascript:;" th:onclick="|like(this,2,${cvo.comment.id});|" class="text-primary">
+                                    <a href="javascript:;" th:onclick="|like(this,2,${cvo.comment.id},${cvo.comment.userId},${post.id});|" class="text-primary">
                                         <b th:text="${cvo.likeStatus==1? '已赞':'赞'}">赞</b><i th:text="${cvo.likeCount}">(1)</i>
                                     </a>
                                 </li>
@@ -171,7 +178,7 @@
                                     <span th:text="${#dates.format(rvo.reply.createTime,'yyyy-MM-dd HH:mm:ss')}">2019-04-15 15:32:18</span>
                                     <ul class="d-inline float-right">
                                         <li class="d-inline ml-2">
-                                            <a href="javascript:;" th:onclick="|like(this,2,${rvo.reply.id});|" class="text-primary">
+                                            <a href="javascript:;" th:onclick="|like(this,2,${rvo.reply.id},${rvo.reply.userId},${post.id});|" class="text-primary">
                                                 <b th:text="${rvo.likeStatus==1? '已赞':'赞'}">赞</b> (<i th:text="${rvo.likeCount}">1</i>)
                                             </a>
                                         </li>

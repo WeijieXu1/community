@@ -2,9 +2,14 @@ package com.nowcoder.community.controller;
 
 import com.nowcoder.community.annotation.LoginRequired;
 import com.nowcoder.community.entity.User;
+import com.nowcoder.community.service.FollowService;
+import com.nowcoder.community.service.LikeService;
 import com.nowcoder.community.service.UserService;
+import com.nowcoder.community.util.CommunityConstant;
 import com.nowcoder.community.util.CommunityUtil;
 import com.nowcoder.community.util.HostHolder;
+import com.qiniu.util.Auth;
+import com.qiniu.util.StringMap;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,10 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.ServletOutputStream;
@@ -33,7 +35,7 @@ import java.sql.PseudoColumnUsage;
  */
 @Controller
 @RequestMapping("/user")
-public class UserController {
+public class UserController implements CommunityConstant {
     private static final Logger logger= LoggerFactory.getLogger(UserController.class);
     @Value("${community.path.upload}")
     private String uploadPath;
@@ -48,12 +50,51 @@ public class UserController {
 
     @Autowired
     private HostHolder hostHolder;
+    @Autowired
+    private LikeService likeService;
+    @Autowired
+    private FollowService followService;
+    @Value("${qiniu.key.access}")
+    private String accessKey;
+    @Value("${qiniu.key.secret}")
+    private String secretKey;
+    @Value("${qiniu.bucket.header.name}")
+    private String headerBucketName;
+    @Value("${qiniu.bucket.header.url}")
+    private String headerBucketUrl;
+
 
     @LoginRequired
     @RequestMapping(path = "/setting", method = RequestMethod.GET)
-    public String getSettingPage(){
+    public String getSettingPage(Model model){
+        //上传文件名称
+        String fileName = CommunityUtil.generateUUID();
+        //设置响应信息
+        StringMap policy=new StringMap();
+        policy.put("returnBody",CommunityUtil.getJSONString(0));
+        //生成上传凭证
+        Auth auth=Auth.create(accessKey,secretKey);
+        String uploadToken=auth.uploadToken(headerBucketName,fileName,3600,policy);
+        model.addAttribute("uploadToken",uploadToken);
+        model.addAttribute("fileName",fileName);
+
         return "/site/setting";
     }
+    //更新头像路径
+    @RequestMapping(path = "header/url",method = RequestMethod.POST)
+    @ResponseBody
+    public String updateHeaderUrl(String fileName){
+        if(StringUtils.isBlank(fileName)){
+            CommunityUtil.getJSONString(1,"文件名不能为空");
+
+        }
+        String url=headerBucketUrl+"/"+fileName;
+        userService.updateHeader(hostHolder.getUser().getId(),url);
+        return CommunityUtil.getJSONString(0);
+    }
+
+
+    //废弃
     @LoginRequired
     @RequestMapping(path = "/upload",method = RequestMethod.POST)
     public String uploadHeader(MultipartFile headerImage,Model model){
@@ -84,6 +125,7 @@ public class UserController {
         return "redirect:/index";
 
     }
+    //废弃
     @RequestMapping(path = "/header/{fileName}",method = RequestMethod.GET)
     public void getHeader(@PathVariable("fileName") String fileName, HttpServletResponse response){
         //服务器路径
@@ -141,5 +183,113 @@ public class UserController {
 //        model.addAttribute("usernameMsg","修改成功，请重新登录！");
         return "redirect:/login";
     }
+    //个人主页
+    @RequestMapping(path = "/profile/{userId}",method = RequestMethod.GET)
+    public String getProfilePage(@PathVariable("userId") int userId,Model model){
+        User user = userService.findUserById(userId);
+        if(user==null){
+            throw new RuntimeException("该用户不存在！");
+        }
+        //用户基本信息
+        model.addAttribute("user",user);
+        //获赞数量
+        int likeCount = likeService.findUserLikeCount(userId);
+        //关注数量
+        long followeeCount = followService.findFolloweecount(userId, ENTITY_TYPE_USER);
+        model.addAttribute("followeeCount",followeeCount);
+        //粉丝数量
+        long followerCount = followService.findFollowerCount(ENTITY_TYPE_USER, userId);
+        model.addAttribute("followerCount",followerCount);
+
+
+        //对所看实体是否已关注
+        boolean hasFollowed=false;
+        if(hostHolder.getUser()!=null){
+            hasFollowed=followService.hasFollowed(hostHolder.getUser().getId(),ENTITY_TYPE_USER,userId);
+        }
+        model.addAttribute("hasFollowed",hasFollowed);
+
+
+        model.addAttribute("likeCount",likeCount);
+        return "/site/profile";
+
+    }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
